@@ -1,0 +1,67 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        minSdkVersion 11
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+//    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'org.aspectj:aspectjrt:1.8.1'
+    compile 'org.aspectj:aspectjtools:1.8.1'
+}
+
+task buildJar(dependsOn: 'compileAspectCode', type: Jar) {
+    from 'build/intermediates/classes/release'
+    def aspectjToolPath
+    project.configurations.compile.each {
+        if (it.name.startsWith("aspectjtools")) {
+            aspectjToolPath = it.path
+        }
+    }
+    from aspectjToolPath
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+//    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task compileAspectCode(dependsOn: 'compileReleaseJavaWithJavac', type: JavaExec) {
+    main = 'org.aspectj.tools.ajc.Main'
+    classpath = files(android.getBootClasspath()) + files(project.configurations.compile)
+    args '-verbose'
+    args '-source', '1.7'
+    args '-sourceroots', 'src/main'
+    args '-d', 'build/intermediates/classes/release'
+    args '-log', 'build/ajc.compile.log'
+}
